@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>교내 전력 사용 모니터링</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+<style>
+  :root {
+    --bg: #F7F6F2;
+    --surface: #EFECE6;
+    --border: #E0DDD5;
+    --border-strong: #000000;
+    --text: #111111;
+    --muted: #666666;
+    --font-kr: 'Pretendard', -apple-system, sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0; padding: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-kr);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Header */
+  header {
+    position: sticky; top: 0; z-index: 50;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+  }
+  .header-inner {
+    max-width: 960px; margin: 0 auto; padding: 20px 24px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .brand { font-size: 15px; font-weight: 700; letter-spacing: -0.02em; }
+  nav.tabs { display: flex; gap: 20px; }
+  nav.tabs button {
+    all: unset; cursor: pointer;
+    font-size: 13px; color: var(--muted); font-weight: 500;
+    display: flex; gap: 6px; transition: color 0.2s;
+  }
+  nav.tabs button span.num { font-family: var(--font-mono); font-size: 12px; }
+  nav.tabs button.active, nav.tabs button:hover { color: var(--text); font-weight: 700; }
+
+  /* Main Layout */
+  main { max-width: 960px; margin: 0 auto; padding: 0 24px; }
+  section.page { padding: 60px 0; border-bottom: 1px solid var(--border); scroll-margin-top: 60px; }
+  section.page:last-of-type { border-bottom: none; }
+
+  .sub-tag { font-family: var(--font-mono); font-size: 12px; color: var(--muted); letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 12px; }
+  h2.section-title { font-size: 26px; font-weight: 800; margin: 0 0 16px; letter-spacing: -0.02em; line-height: 1.3; }
+  p.section-desc { color: var(--muted); margin: 0 0 32px; font-size: 14px; line-height: 1.7; word-break: keep-all; }
+
+  /* Grid & Box Styles */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  @media (max-width: 768px){ .grid-2 { grid-template-columns: 1fr; } nav.tabs { display: none; } }
+
+  .data-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 24px; border-radius: 4px;
+  }
+  .data-box h3 { margin: 0 0 8px; font-size: 16px; font-weight: 700; }
+  .data-box .val { font-family: var(--font-mono); font-size: 24px; font-weight: 700; margin-bottom: 16px; }
+
+  /* Table */
+  table.simple-table { width: 100%; border-collapse: collapse; font-size: 14px; margin-top: 12px; }
+  table.simple-table th, table.simple-table td { padding: 10px 0; border-bottom: 1px solid var(--border); text-align: left; }
+  table.simple-table th { color: var(--muted); font-weight: 500; font-size: 12px; }
+  table.simple-table td.num { font-family: var(--font-mono); text-align: right; font-weight: 600; }
+
+  /* Bar Chart */
+  .chart-container { margin-top: 24px; }
+  .bar-group { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+  .bar-row { display: flex; align-items: center; gap: 8px; font-size: 12px; font-family: var(--font-mono); }
+  .bar-label { width: 32px; color: var(--muted); }
+  .bar-track { flex: 1; height: 16px; background: rgba(0, 0, 0, 0.05); border-radius: 2px; position: relative; overflow: hidden; }
+  .bar-fill { height: 100%; background: var(--text); border-radius: 2px; }
+  .bar-val { width: 50px; text-align: right; font-weight: 600; }
+  .bar-empty { font-size: 11px; color: var(--muted); font-style: italic; }
+
+  /* Custom List */
+  ul.text-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 16px; }
+  ul.text-list li { font-size: 14px; line-height: 1.6; }
+  ul.text-list li b { display: block; font-size: 15px; margin-bottom: 4px; font-weight: 700; }
+
+  .quote-box {
+    border-left: 2px solid var(--border-strong);
+    padding-left: 16px; margin-top: 20px; color: var(--text); font-size: 14px; line-height: 1.6; font-weight: 500;
+  }
+
+  /* Calculator Input */
+  .calc-input { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+  .calc-input input { accent-color: #000; width: 200px; cursor: pointer; }
+  .calc-val { font-family: var(--font-mono); font-weight: 700; font-size: 18px; }
+
+  footer { max-width: 960px; margin: 0 auto; padding: 40px 24px; font-size: 12px; color: var(--muted); border-top: 1px solid var(--border); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="brand">전력 배출량 줄이기</div>
+    <nav class="tabs" id="tabNav">
+      <button class="nav-btn active" data-target="sec-1"><span class="num">01</span>메인페이지</button>
+      <button class="nav-btn" data-target="sec-2"><span class="num">02</span>현황</button>
+      <button class="nav-btn" data-target="sec-3"><span class="num">03</span>연도별 변화</button>
+      <button class="nav-btn" data-target="sec-4"><span class="num">04</span>원인분석</button>
+      <button class="nav-btn" data-target="sec-5"><span class="num">05</span>해결방안</button>
+      <button class="nav-btn" data-target="sec-6"><span class="num">06</span>기대효과</button>
+    </nav>
+  </div>
+</header>
+
+<main>
+
+  <!-- 01 메인페이지 -->
+  <section class="page" id="sec-1">
+    <div class="sub-tag">ENERGY MONITORING NOTE</div>
+    <h2 class="section-title">교내 전력 사용 모니터링 웹앱</h2>
+    <p class="section-desc">
+      이화여고의 2024~2025년 전력 사용량 및 지출 통계를 분석하여 전력 소비의 원인과 실천 가능한 해결책을 제시하고, 개인별 전력 절감 시뮬레이션을 통해 에너지 절약의 중요성을 체감하도록 돕기 위해 제작되었습니다.
+    </p>
+  </section>
+
+  <!-- 02 현황 -->
+  <section class="page" id="sec-2">
+    <div class="sub-tag">01 CURRENT STATUS</div>
+    <h2 class="section-title">2. 현황: 연도별 월평균 지출 현황</h2>
+    <p class="section-desc">행정실 데이터를 기반으로 한 연도별 월평균 전력 지출 규모입니다.</p>
+    
+    <div class="grid-2">
+      <div class="data-box">
+        <h3>2024년 월평균 배출량</h3>
+        <div class="val">31,XX,XXX 원</div>
+        <p style="margin:0; font-size: 13px; color: var(--muted);">연간 전력 사용량 기준</p>
+      </div>
+      <div class="data-box">
+        <h3>2025년 월평균 배출량</h3>
+        <div class="val">29,XX,XXX 원</div>
+        <p style="margin:0; font-size: 13px; color: var(--muted);">전년 대비 감소</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 03 연도별 변화 -->
+  <section class="page" id="sec-3">
+    <div class="sub-tag">02 MONTHLY TRENDS</div>
+    <h2 class="section-title">3. 연도별 변화: 월별 평균 대비 증가율 및 추이</h2>
+    <p class="section-desc">제공된 자료 기반의 주요 피크 달(1, 2, 3, 9, 12월) 평균 대비 증가율 데이터 및 월별 추이 그래프입니다.</p>
+
+    <div class="grid-2">
+      <!-- 2024년 -->
+      <div class="data-box">
+        <h3>2024년 피크 월 증가율</h3>
+        <table class="simple-table">
+          <thead>
+            <tr><th>구분</th><th style="text-align:right">평균 대비 증가율</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>1월</td><td class="num">+61.98%</td></tr>
+            <tr><td>2월</td><td class="num">+61.44%</td></tr>
+            <tr><td>3월</td><td class="num">+44.12%</td></tr>
+            <tr><td>9월</td><td class="num">+11.77%</td></tr>
+            <tr><td>12월</td><td class="num">+14.64%</td></tr>
+          </tbody>
+        </table>
+
+        <!-- 막대그래프 2024 -->
+        <div class="chart-container">
+          <div style="font-size: 12px; font-weight: 600; color: var(--muted);">월별 증감 추이 그래프 (1~12월)</div>
+          <div class="bar-group">
+            <div class="bar-row"><span class="bar-label">1월</span><div class="bar-track"><div class="bar-fill" style="width: 61.98%;"></div></div><span class="bar-val">+61.98%</span></div>
+            <div class="bar-row"><span class="bar-label">2월</span><div class="bar-track"><div class="bar-fill" style="width: 61.44%;"></div></div><span class="bar-val">+61.44%</span></div>
+            <div class="bar-row"><span class="bar-label">3월</span><div class="bar-track"><div class="bar-fill" style="width: 44.12%;"></div></div><span class="bar-val">+44.12%</span></div>
+            <div class="bar-row"><span class="bar-label">4월</span><div class="bar-track"></div><span class="bar-val bar-empty">-</span></div>
+            <div class="bar-row"><span class="bar-label">5월</span><div class="bar-track"></div><span class="bar-val bar-empty">-</span></div>
+            <div class="bar-row"><span class="bar-label">6월</span><div class="bar-track"></div><span class="bar-val bar-empty">-</span></div>
+            <div class="bar-row"><span class="bar-label">7월</span><div class="bar-track"></div><span class="bar-val bar-empty">-</span></div>
+            <div class="bar-row"><span class="bar-label">8월</span><div class="bar-track"></div><span class="bar-val bar-empty">-</span></div>
+            <div class="bar-row"><span class="bar-label">9월</span><div class="bar-track"><div class="bar-fill" style="width: 11.77%;"></div></div><span class="bar-val">+11.77%</span></div>
+            <div class="bar-row"><span class="bar-label">10월</span><div class="bar-track"></div><span class="bar-val bar-empty">-</span></div>
+            <div class="bar-row"><span class="bar-label">11월</span><div class="bar-track"></div><span class="bar-val bar-empty">-</span></div>
+            <div class="bar-row"><span class="bar-label">12월</span><div class="bar-track"><div class="bar-fill" style="width: 14.64%;"></div></div><span class="bar-val">+14.64%</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2025년 -->
+      <div class="data-box">
+        <h3>2025년 피크 월 증가율</h3>
+        <table class="simple-table">
+          <thead>
+            <tr><th>구분</th><th style="text-align:right">평균 대비 증가율</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>1월</td><td class="num">+51.04%</td></tr>
+            <tr><td>2월</td><td class="num">+50.53%</td></tr>
+            <tr><td>3월</td><td class="num">+45.02%</td></tr>
+            <tr><td>9월</td><td class="num">+7.76%</td></tr>
+            <tr><td>12월</td><td class="num">+29.36%</td></tr>
+          </tbody>
+        </table>
+
+        <!-- 막대그래프 2025 -->
+        <div class="chart-container">
+          <div style="font-size: 12px; font-weight: 600; color: var(--muted);">월별 증감 추이 그래프 (1~12월)</div>
+          <div class="bar-group">
+            <div class="bar-row"><span class="bar-label">1월</span><div class="bar-track"><div class="bar-fill" style="width: 51.04%;"></div></div><span class="bar-val">+51.04%</span></div>
+            <div class="bar-row"><span class="bar-label">2월</span><div class="bar-track"><div class="bar-fill" style="width: 50.53%;"></div></div><span class="bar-val">+50.53%</span></div>
+            <div class="bar-row"><span class="bar-label">3월</span><div class="bar-track"><div class="bar-fill" style="width: 45.02%;"></div></div><span class="bar-val">+45.02%</span></div>
+            <div class="bar-row"><span class="bar-label">4월</span><div class="bar-track"></div><span class="bar-val bar-empty">-</span></div>
+            <div class="bar-row"><span class="bar-label">5월</span><div class="bar-track"></div><span class="bar-val bar-empty">-</span></div>
+            <div class="bar-row"><span class="bar-label">6월</span><div class="bar-track"></div><span class="bar-val bar-empty">-</span></div>
+            <div class="bar-row"><span class="bar-label">7월</span><div class="bar-track"></div><span class="bar-val bar-empty">-</span></div>
+            <div class="bar-row"><span class="bar-label">8월</span><div class="bar-track"></div><span class="bar-val bar-empty">-</span></div>
+            <div class="bar-row"><span class="bar-label">9월</span><div class="bar-track"><div class="bar-fill" style="width: 7.76%;"></div></div><span class="bar-val">+7.76%</span></div>
+            <div class="bar-row"><span class="bar-label">10월</span><div class="bar-track"></div><span class="bar-val bar-empty">-</span></div>
+            <div class="bar-row"><span class="bar-label">11월</span><div class="bar-track"></div><span class="bar-val bar-empty">-</span></div>
+            <div class="bar-row"><span class="bar-label">12월</span><div class="bar-track"><div class="bar-fill" style="width: 29.36%;"></div></div><span class="bar-val">+29.36%</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 04 원인분석 -->
+  <section class="page" id="sec-4">
+    <div class="sub-tag">03 CAUSE ANALYSIS</div>
+    <h2 class="section-title">4. 원인 분석: 전력 소비 급증 요인</h2>
+    <p class="section-desc">전력 사용량이 급증하는 원인을 주체별로 구분하여 진단합니다.</p>
+
+    <div class="grid-2">
+      <div class="data-box">
+        <h3>학생 차원</h3>
+        <ul class="text-list" style="margin-top: 16px;">
+          <li>
+            <b>1. 빈 강의실 불필요한 조명 및 냉난방 작동</b>
+            수업 종료 후 방치되는 전력 손실
+          </li>
+          <li>
+            <b>2. 과도한 설정 온도</b>
+            여름철 과냉방(20℃ 이하), 겨울철 과난방
+          </li>
+          <li>
+            <b>3. 전자기기 사용 증가</b>
+            학생 개인 기기(노트북, 태블릿 등) 교내 충전 빈도 증가
+          </li>
+        </ul>
+      </div>
+
+      <div class="data-box">
+        <h3>학교 차원</h3>
+        <ul class="text-list" style="margin-top: 16px;">
+          <li>
+            <b>1. 겨울철 & 심야 가동</b>
+            학교 보일러가 학교에 사람이 없는 심야까지도 계속 가동되기 때문에 심야 겨울철 사용량이 매우 높게 나타남
+          </li>
+          <li>
+            <b>2. 대형 공간 공기 순환 부재</b>
+            유관순 기념관 등 대형 공간 내 공기 순환 부재로 인한 장소별 온도 불균형 발생 및 전력 소비 효율 저하
+          </li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 05 해결방안 -->
+  <section class="page" id="sec-5">
+    <div class="sub-tag">04 ACTION PLAN</div>
+    <h2 class="section-title">5. 해결 방안: 전력 절감 실행 과제</h2>
+    <p class="section-desc">개인과 학교 차원에서 실천 가능한 전력 효율화 방안입니다.</p>
+
+    <div class="grid-2">
+      <div class="data-box">
+        <h3>개인 차원</h3>
+        <ul class="text-list" style="margin-top: 16px;">
+          <li>
+            <b>이동수업 시 냉방 끄고 가기</b>
+            수업 이동 시 조명과 냉난방 장치 전원 OFF
+          </li>
+          <li>
+            <b>에어컨보다는 선풍기 먼저</b>
+            순환 팬 우선 가동으로 에너지 사용 최소화
+          </li>
+        </ul>
+      </div>
+
+      <div class="data-box">
+        <h3>학교 차원</h3>
+        <ul class="text-list" style="margin-top: 16px;">
+          <li>
+            <b>공기 순환장치 도입</b>
+            공기 순환장치(서큘레이터·천장형 대형 팬) 도입을 통한 대형 공간 내 냉기 균일 분배 및 냉방 전력 사용 효율화
+          </li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 06 기대효과 -->
+  <section class="page" id="sec-6">
+    <div class="sub-tag">05 SIMULATION</div>
+    <h2 class="section-title">6. 기대 효과: 온도 조절 시뮬레이션</h2>
+    <p class="section-desc">설정 온도를 조절하여 줄일 때 예상되는 교내 전력 절감 효과입니다.</p>
+
+    <div class="data-box">
+      <div class="calc-input">
+        <label for="rangeInput" style="font-size:14px; font-weight:600;">온도 조절 설정 (n도):</label>
+        <input type="range" id="rangeInput" min="1" max="5" value="2">
+        <span class="calc-val"><span id="tempVal">2</span>℃</span>
+      </div>
+
+      <div class="quote-box">
+        "우리 학교 교실이 다 난방 온도를 <span id="tempN1" style="font-weight:700; text-decoration:underline;">2</span>도 낮추고, 냉방 온도를 <span id="tempN2" style="font-weight:700; text-decoration:underline;">2</span>도 높인다면..."
+      </div>
+
+      <div class="grid-2" style="margin-top: 24px;">
+        <div>
+          <div style="font-size:12px; color:var(--muted);">예상 월간 절감 전력량</div>
+          <div class="val" id="kwhVal" style="margin-top:4px;">3,600 ~ 7,200 kWh</div>
+        </div>
+        <div>
+          <div style="font-size:12px; color:var(--muted);">스마트폰 충전 환산</div>
+          <div class="val" id="phoneVal" style="margin-top:4px;">약 480,000 회</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  EWHA GIRLS' HIGH SCHOOL · ENERGY MONITORING NOTE
+</footer>
+
+<script>
+  // Tab Navigation
+  const navBtns = document.querySelectorAll('.nav-btn');
+  navBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const target = document.getElementById(btn.dataset.target);
+      if(target) target.scrollIntoView({ behavior: 'smooth' });
+    });
+  });
+
+  // Scroll active state
+  const sections = document.querySelectorAll('section.page');
+  window.addEventListener('scroll', () => {
+    let current = '';
+    sections.forEach(sec => {
+      const top = sec.offsetTop;
+      if (pageYOffset >= top - 100) current = sec.getAttribute('id');
+    });
+    navBtns.forEach(btn => {
+      btn.classList.remove('active');
+      if (btn.dataset.target === current) btn.classList.add('active');
+    });
+  });
+
+  // Simulation Slider Logic
+  const rangeInput = document.getElementById('rangeInput');
+  const tempVal = document.getElementById('tempVal');
+  const tempN1 = document.getElementById('tempN1');
+  const tempN2 = document.getElementById('tempN2');
+  const kwhVal = document.getElementById('kwhVal');
+  const phoneVal = document.getElementById('phoneVal');
+
+  rangeInput.addEventListener('input', (e) => {
+    const v = e.target.value;
+    tempVal.textContent = v;
+    tempN1.textContent = v;
+    tempN2.textContent = v;
+    
+    const min = (v * 1800).toLocaleString();
+    const max = (v * 3600).toLocaleString();
+    const phone = (v * 240000).toLocaleString();
+    
+    kwhVal.textContent = `${min} ~ ${max} kWh`;
+    phoneVal.textContent = `약 ${phone} 회`;
+  });
+</script>
+</body>
+</html>
